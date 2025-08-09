@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calc Fluency Trainer</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+  <meta name="theme-color" content="#ffffff">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-2: #16a34a;
+      --danger: #dc2626;
+      --ring: rgba(37,99,235,0.3);
+      --shadow: 0 10px 25px rgba(2,6,23,0.08);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg); color: var(--ink);
+      display: grid; place-items: start center;
+    }
+    .app { width: min(980px, 100%); padding: 18px; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .title { font-size: 22px; font-weight: 700; }
+    .muted { color: var(--muted); }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+    .controls { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 12px; }
+    @media (max-width: 880px) { .controls { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    .control { display: grid; gap: 8px; }
+    .control label { font-size: 12px; color: var(--muted); }
+    .seg { display: grid; grid-auto-flow: column; gap: 6px; align-items: center; background: #f1f5f9; padding: 6px; border-radius: 12px; }
+    .seg button { border: 0; background: transparent; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-weight: 600; color: var(--muted); }
+    .seg button[aria-pressed="true"] { background: white; color: var(--ink); box-shadow: inset 0 0 0 2px #e2e8f0; }
+    .chip { appearance: none; border: 1px solid #e2e8f0; background: white; color: var(--ink); padding: 8px 10px; border-radius: 999px; cursor: pointer; font-weight: 600; }
+    .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+    input[type="number"], select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; outline: none; font-size: 14px; background: white; }
+    input[type="number"]:focus, select:focus { box-shadow: 0 0 0 6px var(--ring); border-color: var(--accent); }
+    .big { text-align: center; font-size: clamp(28px, 7vw, 56px); font-weight: 800; letter-spacing: 0.5px; }
+    .problem { display: grid; gap: 8px; align-items: center; justify-items: center; }
+    .answer { display: grid; grid-auto-flow: column; gap: 10px; align-items: center; justify-content: center; margin-top: 8px; }
+    .answer input { width: min(220px, 60vw); text-align: center; font-size: clamp(22px, 6vw, 34px); font-weight: 700; padding: 10px 12px; border-radius: 12px; border: 2px solid #e2e8f0; }
+    .answer input:focus { border-color: var(--accent); box-shadow: 0 0 0 6px var(--ring); outline: none; }
+    .btn { border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    .btn.primary { background: var(--accent); color: #fff; }
+    .btn.ghost { background: #e2e8f0; }
+    .stat { display: grid; gap: 2px; padding: 8px 10px; border-radius: 12px; background: #f1f5f9; min-width: 120px; }
+    .stat .k { font-size: 12px; color: var(--muted); }
+    .stat .v { font-size: 18px; font-weight: 800; }
+    .stack { display: grid; gap: 12px; }
+    .footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ok { color: var(--accent-2); }
+    .bad { color: var(--danger); }
+    details { background: #f1f5f9; padding: 8px 10px; border-radius: 10px; }
+    summary { cursor: pointer; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+    .nowrap { white-space: nowrap; }
+    .topbar { display:flex; gap:8px; align-items:center; }
+    .topbar .user { font-size: 12px; color: var(--muted); }
+    .link { background: transparent; border:0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+    /* Login overlay */
+    .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.06); display: grid; place-items: center; }
+    .login { background: var(--card); padding: 20px; border-radius: 16px; box-shadow: var(--shadow); width: min(420px, 90vw); display: grid; gap: 10px; }
+    .login h2{ margin:0 0 6px 0; }
+    .login .row { display:flex; gap: 8px; }
+    .field { position: relative; display: grid; }
+    .field input { padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .eye { position:absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; font-size: 16px; cursor: pointer; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title topbar">
+        🧮 Calc Fluency Trainer
+        <span class="user" id="userBadge"></span>
+      </div>
+      <div>
+        <button class="link" id="switchUser">Switch user</button>
+      </div>
+    </header>
+
+    <section class="card stack" id="setup">
+      <div class="controls">
+        <div class="control">
+          <label>Operations</label>
+          <div class="seg" id="ops">
+            <button type="button" data-op="+" aria-pressed="true">+</button>
+            <button type="button" data-op="-" aria-pressed="true">−</button>
+            <button type="button" data-op="*" aria-pressed="true">×</button>
+            <button type="button" data-op="/" aria-pressed="true">÷</button>
+          </div>
+        </div>
+        <div class="control">
+          <label>Range (min)</label>
+          <input type="number" id="minVal" value="0" min="-100" max="999">
+        </div>
+        <div class="control">
+          <label>Range (max)</label>
+          <input type="number" id="maxVal" value="10" min="-100" max="999">
+        </div>
+        <div class="control">
+          <label>Include negatives</label>
+          <button class="chip" id="negatives" aria-pressed="false">Off</button>
+        </div>
+        <div class="control">
+          <label>Positive answers only</label>
+          <button class="chip" id="positiveOnly" aria-pressed="false">Off</button>
+        </div>
+        <div class="control">
+          <label>Mode</label>
+          <select id="mode">
+            <option value="untimed">Untimed practice</option>
+            <option value="timed-60">Timed: 1 minute</option>
+            <option value="timed-180">Timed: 3 minutes</option>
+            <option value="timed-300">Timed: 5 minutes</option>
+            <option value="timed-600">Timed: 10 minutes</option>
+          </select>
+        </div>
+        <div class="control">
+          <label>Sound</label>
+          <button class="chip" id="soundToggle" aria-pressed="true">On</button>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="muted">Tips: Press Enter to submit. Settings & history are saved per user on this device.</div>
+        <div>
+          <button class="btn ghost" id="resetStats">Reset stats</button>
+          <button class="btn primary" id="startBtn">Start</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card stack" id="play" hidden>
+      <div class="problem">
+        <div id="timer" class="muted"></div>
+        <div class="big" id="question">3 × 7</div>
+        <div class="answer">
+          <input id="answer" type="number" inputmode="numeric" placeholder="Your answer">
+          <button class="btn primary" id="submitBtn">Submit</button>
+          <button class="btn ghost" id="skipBtn" title="Skip (no penalty)">Skip</button>
+        </div>
+        <div id="feedback" aria-live="polite"></div>
+      </div>
+      <div class="row">
+        <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
+        <div class="stat"><div class="k">Accuracy</div><div class="v" id="acc">100%</div></div>
+        <div class="stat"><div class="k">Solved</div><div class="v" id="count">0</div></div>
+        <div class="stat"><div class="k">Streak</div><div class="v" id="streak">0</div></div>
+        <div class="stat"><div class="k">Best 1-min</div><div class="v" id="pb1">—</div></div>
+        <div class="stat"><div class="k">Best 3-min</div><div class="v" id="pb3">—</div></div>
+        <div class="stat"><div class="k">Best 5-min</div><div class="v" id="pb5">—</div></div>
+        <div class="stat"><div class="k">Best 10-min</div><div class="v" id="pb10">—</div></div>
+        <div class="stat"><div class="k">Daily Streak 🔥</div><div class="v" id="dayStreak">0</div></div>
+      </div>
+      <details id="missedBox" hidden>
+        <summary>Missed problems this session</summary>
+        <ul id="missedList"></ul>
+      </details>
+      <div class="footer">
+        <button class="btn" id="backBtn">← Settings</button>
+      </div>
+    </section>
+
+    <section class="card stack" id="history">
+      <h3 style="margin:0;">History</h3>
+      <div class="muted" id="histHint">Your last sessions appear here.</div>
+      <div style="overflow:auto;">
+        <table id="histTable">
+          <thead>
+            <tr>
+              <th class="nowrap">Date</th>
+              <th>Mode</th>
+              <th>Range</th>
+              <th>Ops</th>
+              <th class="nowrap">Score</th>
+              <th>Accuracy</th>
+              <th>Solved</th>
+              <th>Missed</th>
+              <th>View</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="footer">
+        <div class="muted">Stored per user on this device only.</div>
+        <div><button class="btn ghost" id="clearHistory">Clear history</button></div>
+      </div>
+    </section>
+
+    <footer class="muted" style="margin-top:12px;font-size:12px;">
+      PWA enabled • Install to Home Screen on iPhone • v4.1
+    </footer>
+  </div>
+
+  <!-- Login overlay -->
+  <div class="overlay" id="loginOverlay">
+    <div class="login">
+      <h2>Sign in</h2>
+      <div class="field">
+        <input id="loginUser" placeholder="Username" autocomplete="username">
+      </div>
+      <div class="field">
+        <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+        <button id="togglePw" class="eye" aria-pressed="false" title="Show/Hide password">👁️</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btnLogin">Log in</button>
+        <button class="btn ghost" id="btnSignup">Sign up</button>
+      </div>
+      <div class="muted" id="loginMsg"></div>
+    </div>
+  </div>
+
+  <script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  // ===== Accounts (local-only) =====
+  const APPKEY = 'calcfluency:v4';
+  function loadApp(){ try { return JSON.parse(localStorage.getItem(APPKEY)) || {}; } catch(e){ return {}; } }
+  function saveApp(obj){ localStorage.setItem(APPKEY, JSON.stringify(obj)); }
+  function getUsers(){ const a=loadApp(); return a.users || {}; }
+  function setUsers(users){ const a=loadApp(); a.users = users; saveApp(a); }
+  function setCurrentUser(name){ const a=loadApp(); a.currentUser = name; saveApp(a); }
+  function getCurrentUser(){ const a=loadApp(); return a.currentUser || null; }
+  function hash(pw){ let h = 0; for(let i=0;i<pw.length;i++){ h = ((h<<5)-h) + pw.charCodeAt(i); h |= 0; } return h.toString(); }
+  function ensureUserData(u){ const users=getUsers(); if(!users[u].data){
+      users[u].data = {
+        settings: { ops:['+','-','*','/'], min:0, max:10, negatives:false, positiveOnly:false, sound:true },
+        pbs: { '60': null, '180': null, '300': null, '600': null },
+        dayStreak: 0, lastPracticeDate: null,
+        sessions: []
+      };
+      setUsers(users);
+    }
+  }
+
+  function getData(){ const u=getCurrentUser(); if(!u) return null; const users=getUsers(); return users[u].data; }
+  function setData(data){ const u=getCurrentUser(); const users=getUsers(); users[u].data = data; setUsers(users); }
+
+  function showLogin(msg=''){
+    $('#loginOverlay').style.display='grid';
+    $('#loginMsg').textContent = msg;
+    $('#loginUser').focus();
+  }
+  function hideLogin(){ $('#loginOverlay').style.display='none'; }
+  function refreshUserBadge(){ const u=getCurrentUser(); $('#userBadge').textContent = u? `• ${u}` : ''; }
+
+  // Toggle password visibility
+  $('#togglePw').addEventListener('click', ()=>{
+    const inp = $('#loginPass');
+    const isPwd = inp.getAttribute('type') === 'password';
+    inp.setAttribute('type', isPwd ? 'text' : 'password');
+    const pressed = !isPwd;
+    $('#togglePw').setAttribute('aria-pressed', pressed);
+    $('#togglePw').textContent = pressed ? '🙈' : '👁️';
+  });
+
+  $('#btnSignup').addEventListener('click', ()=>{
+    const user = ($('#loginUser').value||'').trim();
+    const pass = ($('#loginPass').value||'');
+    if(!user || !pass){ $('#loginMsg').textContent='Enter username & password'; return; }
+    const users = getUsers();
+    if(users[user]){ $('#loginMsg').textContent='Username already exists'; return; }
+    users[user] = { pw: hash(pass), data: null };
+    setUsers(users);
+    ensureUserData(user);
+    setCurrentUser(user);
+    hideLogin(); refreshUserBadge(); loadFromUser();
+  });
+  $('#btnLogin').addEventListener('click', ()=>{
+    const user = ($('#loginUser').value||'').trim();
+    const pass = ($('#loginPass').value||'');
+    const users = getUsers();
+    if(!users[user]){ $('#loginMsg').textContent='User not found'; return; }
+    if(users[user].pw !== hash(pass)){ $('#loginMsg').textContent='Wrong password'; return; }
+    ensureUserData(user);
+    setCurrentUser(user);
+    hideLogin(); refreshUserBadge(); loadFromUser();
+  });
+  $('#switchUser').addEventListener('click', ()=>{
+    showLogin('Switch account');
+  });
+
+  window.addEventListener('load', ()=>{
+    if(!getCurrentUser()){ showLogin(); } else { refreshUserBadge(); loadFromUser(); }
+  });
+
+  // ===== Per-user app state =====
+  const state = {
+    ops: new Set(['+','-','/','*']),
+    min: 0, max: 10,
+    negatives: false,
+    positiveOnly: false,
+    mode: 'untimed',
+    sound: true,
+    running: false,
+    tEnd: 0,
+    score: 0, correct: 0, total: 0, streak:0,
+    missed: [],
+    problem: null,
+    pbs: { '60': null, '180': null, '300': null, '600': null },
+    dayStreak: 0,
+    lastPracticeDate: null,
+    sessions: []
+  };
+
+  function loadFromUser(){
+    const data = getData(); if(!data) return;
+    state.ops = new Set(data.settings.ops);
+    state.min = data.settings.min; state.max = data.settings.max;
+    state.negatives = data.settings.negatives;
+    state.positiveOnly = data.settings.positiveOnly;
+    state.sound = data.settings.sound;
+    state.pbs = data.pbs || state.pbs;
+    state.dayStreak = data.dayStreak || 0;
+    state.lastPracticeDate = data.lastPracticeDate || null;
+    state.sessions = data.sessions || [];
+
+    $$('#ops button').forEach(b=> b.setAttribute('aria-pressed', state.ops.has(b.dataset.op)));
+    $('#minVal').value = state.min;
+    $('#maxVal').value = state.max;
+    $('#negatives').setAttribute('aria-pressed', state.negatives);
+    $('#negatives').textContent = state.negatives ? 'On' : 'Off';
+    $('#positiveOnly').setAttribute('aria-pressed', state.positiveOnly);
+    $('#positiveOnly').textContent = state.positiveOnly ? 'On' : 'Off';
+    $('#soundToggle').setAttribute('aria-pressed', state.sound);
+    $('#soundToggle').textContent = state.sound ? 'On' : 'Off';
+    $('#pb1').textContent = state.pbs['60'] ?? '—';
+    $('#pb3').textContent = state.pbs['180'] ?? '—';
+    $('#pb5').textContent = state.pbs['300'] ?? '—';
+    $('#pb10').textContent = state.pbs['600'] ?? '—';
+    $('#dayStreak').textContent = state.dayStreak ?? 0;
+    renderHistory();
+  }
+
+  function saveUser(){
+    const data = {
+      settings: { ops:[...state.ops], min: state.min, max: state.max, negatives: state.negatives, positiveOnly: state.positiveOnly, sound: state.sound },
+      pbs: state.pbs,
+      dayStreak: state.dayStreak,
+      lastPracticeDate: state.lastPracticeDate,
+      sessions: state.sessions
+    };
+    setData(data);
+  }
+
+  // ===== Sounds =====
+  let audioCtx;
+  function beep(freq=880, dur=0.06, type='sine', vol=0.2){
+    if(!state.sound) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.value = vol;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      setTimeout(()=>{ o.stop(); }, Math.max(10, dur*1000));
+    }catch(e){ /* ignore */ }
+  }
+
+  const sounds = {
+    correct(){ beep(1046,0.08,'sine',0.2); setTimeout(()=>beep(1318,0.08,'sine',0.18),90); },
+    wrong(){ beep(220,0.12,'square',0.18); }
+  };
+
+  // ===== UI Handlers =====
+  const clamp = (n, lo, hi)=> Math.max(lo, Math.min(hi, n));
+  const fmtDateTime = ts => new Date(ts).toLocaleString();
+
+  $$('#ops button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const op = btn.dataset.op;
+      if(state.ops.has(op) && state.ops.size===1){ return; }
+      if(state.ops.has(op)) state.ops.delete(op); else state.ops.add(op);
+      btn.setAttribute('aria-pressed', state.ops.has(op));
+      saveUser();
+    });
+  });
+  $('#minVal').addEventListener('change', e=>{ state.min = clamp(parseInt(e.target.value||0), -999, 999); saveUser(); });
+  $('#maxVal').addEventListener('change', e=>{ state.max = clamp(parseInt(e.target.value||10), -999, 999); saveUser(); });
+  $('#negatives').addEventListener('click', e=>{
+    state.negatives = !state.negatives;
+    e.currentTarget.setAttribute('aria-pressed', state.negatives);
+    e.currentTarget.textContent = state.negatives ? 'On' : 'Off';
+    saveUser();
+  });
+  $('#positiveOnly').addEventListener('click', e=>{
+    state.positiveOnly = !state.positiveOnly;
+    e.currentTarget.setAttribute('aria-pressed', state.positiveOnly);
+    e.currentTarget.textContent = state.positiveOnly ? 'On' : 'Off';
+    saveUser();
+  });
+  $('#soundToggle').addEventListener('click', e=>{
+    state.sound = !state.sound;
+    e.currentTarget.setAttribute('aria-pressed', state.sound);
+    e.currentTarget.textContent = state.sound ? 'On' : 'Off';
+    saveUser();
+  });
+  $('#mode').addEventListener('change', e=> state.mode = e.target.value);
+
+  $('#startBtn').addEventListener('click', start);
+  $('#backBtn').addEventListener('click', backToSettings);
+  $('#submitBtn').addEventListener('click', submitAnswer);
+  $('#skipBtn').addEventListener('click', ()=>{ nextProblem(); focusAnswer(); });
+  $('#resetStats').addEventListener('click', ()=>{
+    if(confirm('Reset personal bests, streak, and session stats?')){
+      state.pbs = { '60': null, '180': null, '300': null, '600': null };
+      $('#pb1').textContent = '—'; $('#pb3').textContent = '—'; $('#pb5').textContent = '—'; $('#pb10').textContent = '—';
+      state.dayStreak = 0; state.lastPracticeDate = null; $('#dayStreak').textContent = '0';
+      saveUser();
+      resetSessionStats();
+    }
+  });
+  $('#clearHistory').addEventListener('click', ()=>{
+    if(confirm('Clear all saved session history for this user?')){
+      state.sessions = []; saveUser(); renderHistory();
+    }
+  });
+  $('#answer').addEventListener('keydown', e=>{ if(e.key==='Enter'){ submitAnswer(); } });
+
+  function start(){
+    let a = parseInt($('#minVal').value||0);
+    let b = parseInt($('#maxVal').value||10);
+    if(a>b){ [a,b]=[b,a]; $('#minVal').value=a; $('#maxVal').value=b; }
+    state.min=a; state.max=b;
+    saveUser();
+    resetSessionStats();
+    $('#setup').hidden = true;
+    $('#play').hidden = false;
+    if(state.mode.startsWith('timed-')){
+      const secs = parseInt(state.mode.split('-')[1],10);
+      state.tEnd = Date.now() + secs*1000;
+      tickTimer();
+    } else {
+      $('#timer').textContent = '';
+    }
+    nextProblem();
+    focusAnswer();
+  }
+
+  function resetSessionStats(){
+    state.running = true;
+    state.score = 0; state.correct = 0; state.total = 0; state.streak = 0;
+    state.missed = [];
+    updateStats();
+    $('#feedback').textContent='';
+    $('#missedList').innerHTML='';
+    $('#missedBox').hidden = true;
+  }
+
+  function endSession(){
+    state.running = false;
+    if(state.mode.startsWith('timed-')){
+      const key = state.mode.split('-')[1];
+      const prev = state.pbs[key];
+      if(prev==null || state.score>prev){ state.pbs[key] = state.score; }
+    }
+    $('#pb1').textContent = state.pbs['60'] ?? '—';
+    $('#pb3').textContent = state.pbs['180'] ?? '—';
+    $('#pb5').textContent = state.pbs['300'] ?? '—';
+    $('#pb10').textContent = state.pbs['600'] ?? '—';
+
+    // Daily streak (consecutive days, 1 per day)
+    if(state.total > 0){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const todayStr = today.toISOString().slice(0,10);
+      if(state.lastPracticeDate !== todayStr){
+        const y = new Date(today.getTime()-86400000);
+        const yStr = y.toISOString().slice(0,10);
+        if(state.lastPracticeDate === yStr){
+          state.dayStreak = (state.dayStreak||0) + 1;
+        } else {
+          state.dayStreak = 1;
+        }
+        state.lastPracticeDate = todayStr;
+        $('#dayStreak').textContent = state.dayStreak;
+      }
+    }
+
+    const sess = {
+      ts: Date.now(),
+      mode: state.mode,
+      settings: { ops: [...state.ops], min: state.min, max: state.max, negatives: state.negatives, positiveOnly: state.positiveOnly, sound: state.sound },
+      stats: { score: state.score, correct: state.correct, total: state.total, accuracy: state.total ? Math.round((state.correct/state.total)*100) : 100 },
+      missed: state.missed.slice()
+    };
+    state.sessions.unshift(sess);
+    if(state.sessions.length>200) state.sessions.length = 200;
+    saveUser();
+    renderHistory();
+  }
+
+  function backToSettings(){
+    endSession();
+    $('#setup').hidden=false;
+    $('#play').hidden=true;
+  }
+
+  function focusAnswer(){ setTimeout(()=>$('#answer').focus(), 0); }
+  function randInt(lo, hi){ return Math.floor(Math.random()*(hi-lo+1)) + lo; }
+  function coin(){ return Math.random()<0.5; }
+  function pickAbs(){ return randInt(Math.abs(state.min), Math.abs(state.max)); }
+  function withSign(n){ return state.negatives ? (coin()? -n : n) : n; }
+  function chooseOp(){ const arr = [...state.ops]; return arr[randInt(0, arr.length-1)]; }
+
+  function makeProblem(){
+    const op = chooseOp();
+    let a, b, answer;
+    const sym = op==='*' ? '×' : (op==='/' ? '÷' : op);
+
+    if(op==='/'){
+      let tries = 0;
+      while(true){
+        tries++; if(tries>200){ a = 0; b = 1; answer = 0; break; }
+        const bAbs = Math.max(1, pickAbs());
+        const qAbs = pickAbs();
+        let q = withSign(qAbs);
+        let bb = withSign(bAbs);
+        if(state.positiveOnly){ q = Math.abs(q); bb = Math.abs(bb); }
+        const aa = bb * q;
+        if(Math.abs(aa) < Math.abs(state.min) || Math.abs(aa) > Math.abs(state.max)) continue;
+        a = aa; b = bb; answer = q;
+        break;
+      }
+    } else if(op==='*'){
+      let A = withSign(pickAbs());
+      let B = withSign(pickAbs());
+      if(state.positiveOnly){ A = Math.abs(A); B = Math.abs(B); }
+      a = A; b = B; answer = a * b;
+    } else if(op==='-'){
+      let A = withSign(pickAbs());
+      let B = withSign(pickAbs());
+      if(state.positiveOnly){
+        const AA = Math.abs(A), BB = Math.abs(B);
+        a = Math.max(AA,BB); b = Math.min(AA,BB); answer = a - b;
+      } else { a=A; b=B; answer = a - b; }
+    } else {
+      let A = withSign(pickAbs());
+      let B = withSign(pickAbs());
+      if(state.positiveOnly){ A = Math.abs(A); B = Math.abs(B); }
+      a = A; b = B; answer = a + b;
+    }
+
+    const question = `${a} ${sym} ${b}`;
+    return { a, b, op, question, answer };
+  }
+
+  function nextProblem(){
+    state.problem = makeProblem();
+    $('#question').textContent = state.problem.question;
+    $('#answer').value='';
+    $('#feedback').textContent='';
+  }
+
+  function submitAnswer(){
+    if(!state.running) return;
+    const raw = $('#answer').value.trim();
+    if(raw==='') { focusAnswer(); return; }
+    const userVal = Number(raw);
+    const correct = userVal === state.problem.answer;
+    state.total += 1;
+    if(correct){
+      state.score += 1; state.correct += 1; state.streak += 1;
+      $('#feedback').textContent = 'Correct!'; $('#feedback').className = 'ok';
+      beep(1046,0.08,'sine',0.2); setTimeout(()=>beep(1318,0.08,'sine',0.18),90);
+    } else {
+      state.streak = 0;
+      $('#feedback').textContent = `Not quite. Answer: ${state.problem.answer}`; $('#feedback').className = 'bad';
+      state.missed.push({ q: state.problem.question, correct: state.problem.answer, you: Number.isFinite(userVal)? userVal : raw });
+      $('#missedBox').hidden = false;
+      const li = document.createElement('li');
+      li.textContent = `${state.problem.question} → correct ${state.problem.answer}, you: ${raw}`;
+      $('#missedList').appendChild(li);
+      beep(220,0.12,'square',0.18);
+    }
+    updateStats();
+    nextProblem();
+    focusAnswer();
+  }
+
+  function updateStats(){
+    $('#score').textContent = state.score;
+    $('#count').textContent = state.total;
+    const acc = state.total ? Math.round((state.correct/state.total)*100) : 100;
+    $('#acc').textContent = acc + '%';
+    $('#streak').textContent = state.streak;
+  }
+
+  function tickTimer(){
+    if(!state.running) return;
+    const ms = state.tEnd - Date.now();
+    if(ms <= 0){
+      $('#timer').textContent = '⏱ Time!';
+      endSession();
+      return;
+    }
+    const s = Math.ceil(ms/1000);
+    $('#timer').textContent = '⏱ ' + s + 's';
+    requestAnimationFrame(tickTimer);
+  }
+
+  function renderHistory(){
+    const tbody = $('#histTable tbody');
+    tbody.innerHTML = '';
+    if(!state.sessions.length){
+      $('#histHint').textContent = 'No sessions yet. Start a practice to log history.';
+      return;
+    } else {
+      $('#histHint').textContent = 'Click “View” to see missed problems.';
+    }
+    state.sessions.forEach((sess, idx)=>{
+      const tr = document.createElement('tr');
+      const ops = sess.settings.ops.join('');
+      const missCount = sess.missed.length;
+      tr.innerHTML = `
+        <td class="nowrap">${fmtDateTime(sess.ts)}</td>
+        <td>${prettyMode(sess.mode)}</td>
+        <td>${sess.settings.min}–${sess.settings.max}${sess.settings.positiveOnly? ' (positive answers)': ''}${sess.settings.negatives? ', ± allowed':''}</td>
+        <td>${ops}</td>
+        <td>${sess.stats.score}</td>
+        <td>${sess.stats.accuracy}%</td>
+        <td>${sess.stats.total}</td>
+        <td>${missCount}</td>
+        <td><button class="btn ghost" data-view="${idx}">View</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('button[data-view]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const i = parseInt(btn.getAttribute('data-view'),10);
+        const s = state.sessions[i];
+        const list = s.missed.map(m=>`• ${m.q} → correct ${m.correct}, you: ${m.you}`).join('\n') || 'None';
+        alert(
+`Session: ${fmtDateTime(s.ts)}
+Mode: ${prettyMode(s.mode)}
+Score: ${s.stats.score} | Accuracy: ${s.stats.accuracy}% | Solved: ${s.stats.total}
+
+Missed:
+${list}`);
+      });
+    });
+  }
+
+  function prettyMode(m){
+    if(m==='untimed') return 'Untimed';
+    const secs = parseInt(m.split('-')[1],10);
+    const mins = Math.round(secs/60);
+    return `Timed: ${mins} min`;
+  }
+  </script>
+</body>
+</html>
